@@ -1,0 +1,48 @@
+# Lifespan start
+[Lifespan]
+life_cycle = 0
+wait = 2
+timeout = 2
+# Lifespan end
+
+# Database start
+[Database.Redis]
+auto_connection = true
+redis_id = "r"
+redis_options = {}
+
+[Database.SQLite]
+a = ""
+# Database end
+
+# Monitor start
+[Monitor]
+# 通过py文件来模块级储存options对象，字符串要求为py文件路径:options实例名称
+system_monitor_options = "/home/ckr-ubuntu/桌面/myfsp/myfsp/config/settings.toml:options"
+config_file_event_monitor = ""
+
+# Monitor end
+
+
+# PlaywrightClient start
+[PlaywrightClient.browsers.browser_1]
+core = "chromium"
+[PlaywrightClient.browsers.browser_1.options]
+headless = true
+
+[PlaywrightClient.contexts.context_1]
+browser = "browser_1"
+[PlaywrightClient.contexts.context_1.options]
+viewport = {width = 10, height = 10}
+
+[PlaywrightClient.pages.page_1]
+context = "context_1"
+
+# PlaywrightClient end
+
+# HttpxClient start
+[HttpxClient.client_1]
+a = 10
+b = 10
+
+# HttpxClient end
