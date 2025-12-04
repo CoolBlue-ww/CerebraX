@@ -1,6 +1,6 @@
 from server import ServerHandler
 from app import app
-import _register
+import register
 import asyncio, platform, os, signal
 from uvicorn import Server
 
@@ -12,7 +12,7 @@ class Myfsp(object):
                 'host': '127.0.0.1',
                 'port': 8000,
             }).build_server()
-        _register.server = self._server  # injection
+        register.server = self._server  # injection
 
     @property
     def server(self) -> Server:
