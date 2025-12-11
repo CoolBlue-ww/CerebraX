@@ -3,7 +3,7 @@
 # 服务存活时间
 life_cycle = 0
 # 关闭服务之前的可等待时间
-wait_for_exit = 2
+wait_for_exit = 0
 # 关闭服务的超时时间
 exit_timeout = 2
 # Lifespan end
@@ -17,8 +17,9 @@ exit_timeout = 2
 #    "-s", "test_2.py",
 #    "-p", "8888"
 #]
-command = "mitmproxy -p 8888"
-adapt_pattern = false
+auto_start = true
+startup_command = "mitmproxy -p 8888"
+adapt_pattern = true
 fallback_pattern = "mitmweb"
 
 # Proxy end

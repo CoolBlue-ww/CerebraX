@@ -27,8 +27,8 @@ class ConfigLoader(object):
         return {}
 
     async def async_load(self) -> typing.Dict[str, typing.Any]:
-        data = await asyncio.to_thread(self.sync_load)
-        return data
+        cfg = await asyncio.to_thread(self.sync_load)
+        return cfg
 
 
 class ConfigParser(object):
@@ -59,7 +59,6 @@ class ConfigParser(object):
         self.parse_lifespan_cfg()
         self.parse_proxy_cfg()
         return self
-
 
 
 __all__ = [

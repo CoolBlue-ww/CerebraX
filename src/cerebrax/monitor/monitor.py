@@ -650,3 +650,10 @@ __all__ = [
     "SystemMonitor",
     "ConfigFileEventMonitor",
 ]
+
+from mitmproxy import master, options, ctx
+
+option = options.Options()
+master = master.Master(option)
+ctx.master
+

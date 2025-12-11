@@ -1,3 +1,6 @@
+"""
+Proxy功能对外暴露的接口
+"""
 from fastapi import APIRouter, Request, FastAPI
 
 proxy_router = APIRouter(
@@ -5,19 +8,11 @@ proxy_router = APIRouter(
     tags=["proxy"],
 )
 
-@proxy_router.get("/running")
-async def running(request: Request):
-    try:
-        proxy_handler = request.app.state.proxy_handler
-        return {"running": proxy_handler.running}
-    except AttributeError:
-        return {"running": False}
-
 @proxy_router.get("/pid")
 async def pid(request: Request):
     try:
         proxy_handler = request.app.state.proxy_handler
-        return {"pid": proxy_handler.pid}
+        return {"pid": proxy_handler.popen.pid}
     except AttributeError:
         return {"pid": None}
 

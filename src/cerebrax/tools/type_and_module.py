@@ -6,29 +6,31 @@ from pydantic import (
     ValidationError
 )
 
-
 TIME = typing.Union[int, float]
 DefaultLifeCycle: TIME = 0
-DefaultWaitForExit: TIME = 1
-DefaultExitTimeout: TIME = 1
+DefaultWaitForExit: TIME = 0
+DefaultExitTimeout: TIME = 10
 
 class LifespanConfig(BaseModel):
     life_cycle: TIME = DefaultLifeCycle
     wait_for_exit: TIME = DefaultWaitForExit
     exit_timeout: TIME = DefaultExitTimeout
 
-DefaultCommand: typing.List[str] = ["mitmdump"]
+
+DefaultStartupCommand: typing.List[str] = ["mitmdump"]
+AutoStart: bool = False
 AdaptPattern: bool = False
 FallbackPattern: str = "mitmdump"
 Patterns: typing.Set[str] = {"mitmdump", "mitmproxy", "mitmweb"}
 
+
 class ProxyConfig(BaseModel):
+    auto_start: bool = AutoStart
     adapt_pattern: bool = AdaptPattern
     fallback_pattern: str = FallbackPattern
-    command: typing.Union[str, typing.List[str]] = DefaultCommand
+    startup_command: typing.Union[str, typing.List[str]] = DefaultStartupCommand
 
-
-    @field_validator("command", mode="before")
+    @field_validator("startup_command", mode="before")
     @classmethod
     def correct_pattern(cls, v: typing.Union[str, typing.List[str]], info: ValidationInfo) -> typing.List[str]:
         if isinstance(v, str):
@@ -46,6 +48,10 @@ class ProxyConfig(BaseModel):
         return v
 
 
-class ShutdownJsonItem(BaseModel):
+class ShutdownLaunchItem(BaseModel):
+    shutdown: bool = True
     wait_for_exit: TIME = DefaultWaitForExit
 
+
+class CannelCountdownItem(BaseModel):
+    cannel_countdown: bool = False

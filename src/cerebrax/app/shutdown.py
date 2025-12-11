@@ -1,5 +1,5 @@
-import asyncio, register, typing, time
-from src.cerebrax.tools.type_and_module import TIME, ShutdownJsonItem
+import asyncio, register, time
+from src.cerebrax.tools.type_and_module import TIME
 
 
 def sync_set_exit(wait_for_exit: TIME, server: register.SubServer) -> None:

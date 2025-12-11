@@ -1,35 +1,30 @@
-import subprocess, os, typing, signal
+import subprocess, os, typing, signal, asyncio
 
 
 class ProxyHandler(object):
-    def __init__(self, args: typing.List[str]) -> None:
-        self._args = args
-        self._pid = None
-        self._running = False
+    def __init__(self, startup_command: typing.List[str]) -> None:
+        self._startup_command = startup_command
+        self._popen = None
 
     @property
-    def pid(self) -> typing.Optional[int]:
-        return self._pid
+    def popen(self) -> typing.Optional[subprocess.Popen]:
+        return self._popen
 
-    @property
-    def running(self) -> bool:
-        return self._running
+    @popen.setter
+    def popen(self, value: typing.Optional[subprocess.Popen]) -> None:
+        self._popen = value
 
     def start(self) -> None:
-        if not self._running:
-            result = subprocess.Popen(self._args)
-            self._pid = result.pid
-            self._running = True
+        if not self.popen:
+            self.popen = subprocess.Popen(self._startup_command)
         return None
 
     def stop(self) -> None:
-        if self._pid:
-            os.kill(self.pid, signal.SIGTERM)
-            self._pid = None
-            self._running = False
+        if self.popen and not self.popen.poll():
+            os.kill(self.popen.pid, signal.SIGTERM)
+            self.popen = None
         return None
 
 __all__ = [
     "ProxyHandler"
 ]
-
