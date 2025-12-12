@@ -32,3 +32,8 @@ async def root():
     return {'message': "Welcome to CerebraX!"}
 
 
+@app.get("/cfg")
+async def cfg():
+    shared_instance = app.state.shared_instances
+    cfg = shared_instance.cfg_parser.proxy_cfg
+    return cfg

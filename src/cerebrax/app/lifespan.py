@@ -10,24 +10,22 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio, typing, types
 from dataclasses import dataclass
-import register, shutdown
+import register, shutdown, cfg_monitor, restart_min_service
 from src.cerebrax.tools.config import ConfigLoader, ConfigParser
 from src.cerebrax.proxy.proxy_handler import ProxyHandler
+from src.cerebrax.proxy.certificate_installer import CertificateInstaller
 
 
-DefaultCfgDir = "/home/ckr-ubuntu/桌面/MyProject/CerebraX/src/cerebrax/tools/"
-TomlPath = DefaultCfgDir + "settings.toml"
+DefaultCfgDir = "/home/ckr-rpi/Desktop/CerebraX/src/cerebrax/tools"
+TomlPath = DefaultCfgDir + "/settings.toml"
 PyPath = DefaultCfgDir + "settings.py"
 
-
-"""
-实现类依赖汇集容器
-"""
 @dataclass
 class ImplementationClasses(object):
     config_loader: type[ConfigLoader]
     config_parser: type[ConfigParser]
     proxy_handler: type[ProxyHandler]
+    certificate_installer: type[CertificateInstaller]
 
 @dataclass
 class SharedInstances(object):
@@ -36,15 +34,32 @@ class SharedInstances(object):
     shutdown_task: typing.Optional[asyncio.Task] = None
     server: typing.Optional[register.SubServer] = None
 
-async def initial_loading_cfg(path: str) -> ConfigParser:
-    cfg_loader = await ConfigLoader(path=path).async_load()  # 初始化加载配置文件
-    cfg_parser = ConfigParser(cfg_loader).parse()  # 构造config parser并解析文件
+
+async def load_cfg(path: str) -> ConfigParser:
+    cfg = await ConfigLoader(path=path).async_load()  # 初始化加载配置文件
+    cfg_parser = ConfigParser(cfg).parse()  # 构造config parser并解析文件
     return cfg_parser
 
+async def reload_cfg(
+        shared_instance: SharedInstances,
+        event_flow: typing.AsyncGenerator
+) -> None:
+    async for path in event_flow:
+        new_cfg_parser = await load_cfg(path=path)
+        restarter = restart_min_service.RestartMinService(
+            host="http://localhost:8000",
+            base_cfg_parser=shared_instance.cfg_parser,
+            new_cfg_parser=new_cfg_parser,
+        )
+        await restarter.restart()
+        shared_instance.cfg_parser = new_cfg_parser
+    return None
+
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> typing.AsyncGenerator:
     app.state = types.SimpleNamespace()  # 类型提示
-    cfg_parser = await initial_loading_cfg(path=TomlPath)  # 加载配置文件
+    cfg_parser = await load_cfg(path=TomlPath)  # 加载配置文件
     shutdown_task = asyncio.create_task(  # 创建定时关闭服务任务
         shutdown.countdown(
             server=register.server,  # server 对象
@@ -60,15 +75,23 @@ async def lifespan(app: FastAPI):
     """
     注册全部的功能实现类
     """
-    app.state.implementation_class = ImplementationClasses(
+    app.state.implementation_classes = ImplementationClasses(
         config_parser=ConfigParser, # 配置文件解析实现类
         config_loader=ConfigLoader,  # 配置文件加载实现类
         proxy_handler=ProxyHandler,  # 代理控制实现类
+        certificate_installer=CertificateInstaller, # 代理证书下载实现类
     )
+    config_monitor = cfg_monitor.ConfigFileEventMonitor(
+        path=DefaultCfgDir,
+        name="settings.toml",
+        reload=reload_cfg,
+        shared_instances=app.state.shared_instances,
+    )
+    config_monitor.start()  # 开启配置文件监控
     # -------------------------------------------------------------
     yield
     # -------------------------------------------------------------
-
+    await config_monitor.stop()  # 关闭配置文件监控
     try:
         await asyncio.wait_for(
             fut=shutdown_task,  # 等待关机任务
