@@ -4,7 +4,7 @@ from fastapi import (
         Request,
         BackgroundTasks
 )
-from src.cerebrax.app import shutdown
+from src.cerebrax.app import shutdown_tools
 from src.cerebrax.tools.type_and_module import (
         ShutdownLaunchItem,
         CannelCountdownItem
@@ -20,7 +20,7 @@ async def launch(item: ShutdownLaunchItem, request: Request, bg: BackgroundTasks
     try:
         server = request.app.state.server
         _wait_for_exit = item.wait_for_exit
-        bg.add_task(shutdown.sync_set_exit, wait_for_exit=_wait_for_exit, server=server)
+        bg.add_task(shutdown_tools.sync_set_exit, wait_for_exit=_wait_for_exit, server=server)
         return {"shutdown": True, "timestamp": time.time()}
     except AttributeError:
         return {"shutdown": False, "timestamp": time.time()}

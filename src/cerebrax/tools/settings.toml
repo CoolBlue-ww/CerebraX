@@ -1,14 +1,13 @@
 # Lifespan start
+# 这个参数不支持热更新
 [Lifespan]
-# 服务存活时间
-life_cycle = 0
-# 关闭服务之前的可等待时间
-wait_for_exit = 1
-# 关闭服务的超时时间
-exit_timeout = 1
+life_cycle = 5  # 服务存活的时间，小于等于0的不启动定时功能
+wait_for_exit = 1  # 关闭服务的时候可等待的时间
+exit_timeout = 1  # 关闭服务时的超时等待时间
 # Lifespan end
 
 # Proxy start
+# 此参数支持热更新
 [Proxy]
 # mitmproxy指令
 #command = [

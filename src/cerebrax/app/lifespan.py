@@ -8,15 +8,15 @@ Simultaneously initialize other independent services.
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-import asyncio, typing, types
+import asyncio, typing, httpx
 from dataclasses import dataclass
-import register, shutdown, cfg_monitor, restart_min_service
-from src.cerebrax.tools.config import ConfigLoader, ConfigParser
+import register, shutdown_tools, cfg_monitor, restart_microservices
+from src.cerebrax.tools.config import ConfigLoader, ConfigParser, load_cfg, reload_cfg
 from src.cerebrax.proxy.proxy_handler import ProxyHandler
 from src.cerebrax.proxy.certificate_installer import CertificateInstaller
 
 
-DefaultCfgDir = "/home/ckr-rpi/Desktop/CerebraX/src/cerebrax/tools"
+DefaultCfgDir = "/home/ckr-ubuntu/桌面/MyProject/CerebraX/src/cerebrax/tools"
 TomlPath = DefaultCfgDir + "/settings.toml"
 PyPath = DefaultCfgDir + "settings.py"
 
@@ -33,35 +33,15 @@ class SharedInstances(object):
     proxy_handler: typing.Optional[ProxyHandler] = None
     shutdown_task: typing.Optional[asyncio.Task] = None
     server: typing.Optional[register.SubServer] = None
-
-
-async def load_cfg(path: str) -> ConfigParser:
-    cfg = await ConfigLoader(path=path).async_load()  # 初始化加载配置文件
-    cfg_parser = ConfigParser(cfg).parse()  # 构造config parser并解析文件
-    return cfg_parser
-
-async def reload_cfg(
-        shared_instance: SharedInstances,
-        event_flow: typing.AsyncGenerator
-) -> None:
-    async for path in event_flow:
-        new_cfg_parser = await load_cfg(path=path)
-        restarter = restart_min_service.RestartMinService(
-            host="http://localhost:8000",
-            base_cfg_parser=shared_instance.cfg_parser,
-            new_cfg_parser=new_cfg_parser,
-        )
-        await restarter.restart()
-        shared_instance.cfg_parser = new_cfg_parser
-    return None
+    server_args: typing.Optional[typing.Dict[str, typing.Any]] = None
+    async_httpx_client: httpx.AsyncClient = httpx.AsyncClient()  # 内部可复用的异步客户端
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> typing.AsyncGenerator:
-    app.state = types.SimpleNamespace()  # 类型提示
     cfg_parser = await load_cfg(path=TomlPath)  # 加载配置文件
     shutdown_task = asyncio.create_task(  # 创建定时关闭服务任务
-        shutdown.countdown(
+        shutdown_tools.countdown(
             server=register.server,  # server 对象
             life_cycle=cfg_parser.lifespan_cfg.life_cycle,  # 服务的生命周期
             wait_for_exit=cfg_parser.lifespan_cfg.wait_for_exit,  # 等待退出的时间
@@ -71,6 +51,7 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator:
         cfg_parser=cfg_parser,  # 加载解析配置文件
         shutdown_task=shutdown_task,  # 将shutdown task注册到全局对象，用于取消定时关机
         server=register.server,  # 注册server实例
+        server_args=register.server_args  # 启动server时的参数
     )
     """
     注册全部的功能实现类

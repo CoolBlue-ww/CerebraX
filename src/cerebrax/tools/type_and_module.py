@@ -33,19 +33,20 @@ class ProxyConfig(BaseModel):
     @field_validator("startup_command", mode="before")
     @classmethod
     def correct_pattern(cls, v: typing.Union[str, typing.List[str]], info: ValidationInfo) -> typing.List[str]:
+        _v = v
         if isinstance(v, str):
-            v = shlex.split(v)
-        if v[0] not in Patterns:
-            raise ValidationError(f"{v[0]} is not a valid pattern")
+            _v = shlex.split(v)
+        if _v[0] not in Patterns:
+            raise ValidationError(f"{_v[0]} is not a valid pattern")
         _data = info.data
-        if v[0] == "mitmproxy":
+        if _v[0] == "mitmproxy":
             if not sys.stdin.isatty() and _data["adapt_pattern"]:
                 fallback_pattern = _data["fallback_pattern"]
                 if fallback_pattern != "mitmproxy" and fallback_pattern in Patterns:
-                    v[0] = fallback_pattern
+                    _v[0] = fallback_pattern
                 else:
-                    v[0] = "mitmdump"
-        return v
+                    _v[0] = "mitmdump"
+        return _v
 
 
 class ShutdownLaunchItem(BaseModel):

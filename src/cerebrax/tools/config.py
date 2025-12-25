@@ -3,6 +3,8 @@ from src.cerebrax.tools.type_and_module import (
     LifespanConfig,
     ProxyConfig,
 )
+from src.cerebrax.app.restart_microservices import RestartMicroservices
+import src.cerebrax.app.register
 
 
 class ConfigLoader(object):
@@ -60,8 +62,28 @@ class ConfigParser(object):
         self.parse_proxy_cfg()
         return self
 
+async def load_cfg(path: str) -> ConfigParser:
+    cfg = await ConfigLoader(path=path).async_load()  # 初始化加载配置文件
+    cfg_parser = ConfigParser(cfg).parse()  # 构造config parser并解析文件
+    return cfg_parser
+
+async def reload_cfg(shared_instance, event_flow: typing.AsyncGenerator) -> None:
+    server_args = shared_instance.server_args
+    _authority = "https" + server_args["host"] + ":" + str(server_args["port"])
+    async for path in event_flow:
+        new_cfg_parser = await load_cfg(path=path)
+        restarter = RestartMicroservices(
+            authority=_authority,
+            base_cfg_parser=shared_instance.cfg_parser,
+            new_cfg_parser=new_cfg_parser,
+        )
+        await restarter.restart()
+        shared_instance.cfg_parser = new_cfg_parser
+    return None
 
 __all__ = [
     "ConfigLoader",
     "ConfigParser",
+    "load_cfg",
+    "reload_cfg",
 ]

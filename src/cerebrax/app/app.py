@@ -11,7 +11,6 @@ app = FastAPI(
     title='CerebraX',
     lifespan=lifespan,
 )
-app.state = types.SimpleNamespace()  # 类型提示
 """
 初始化必要的属性，避免获取时抛出异常
 """
