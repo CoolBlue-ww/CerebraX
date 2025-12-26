@@ -1,27 +1,29 @@
-import typing, sys, shlex
-from pydantic import (
-    BaseModel,
-    field_validator,
-    ValidationInfo,
-    ValidationError
+from src.cerebrax.common_depend import (
+sys,
+shlex,
+typing,
+BaseModel,
+field_validator,
+ValidationError,
+ValidationInfo
+)
+from src.cerebrax._types import (
+TIME,
+DefaultLifeCycle,
+DefaultExitTimeout,
+DefaultStartupCommand,
+DefaultWaitForExit,
+FallbackPattern,
+AutoStart,
+AdaptPattern,
+Patterns,
 )
 
-TIME = typing.Union[int, float]
-DefaultLifeCycle: TIME = 0
-DefaultWaitForExit: TIME = 0
-DefaultExitTimeout: TIME = 10
 
 class LifespanConfig(BaseModel):
     life_cycle: TIME = DefaultLifeCycle
     wait_for_exit: TIME = DefaultWaitForExit
     exit_timeout: TIME = DefaultExitTimeout
-
-
-DefaultStartupCommand: typing.List[str] = ["mitmdump"]
-AutoStart: bool = False
-AdaptPattern: bool = False
-FallbackPattern: str = "mitmdump"
-Patterns: typing.Set[str] = {"mitmdump", "mitmproxy", "mitmweb"}
 
 
 class ProxyConfig(BaseModel):

@@ -10,13 +10,32 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio, typing, httpx
 from dataclasses import dataclass
-import register, shutdown_tools, cfg_monitor, restart_microservices
-from src.cerebrax.tools.config import ConfigLoader, ConfigParser, load_cfg, reload_cfg
-from src.cerebrax.proxy.proxy_handler import ProxyHandler
-from src.cerebrax.proxy.certificate_installer import CertificateInstaller
+import register
+from src.cerebrax.monitor import config
+from src.cerebrax.utils.config import ConfigLoader, ConfigParser, load_cfg, reload_cfg
+from src.cerebrax.proxy.handler import ProxyHandler
+from src.cerebrax.proxy.certificate import CertificateInstaller
+from src.cerebrax.type_and_module import TIME
 
+# 自动关闭服务的异步方法
+async def async_set_exit(wait_for_exit: TIME, server: register.SubServer) -> None:
+    if wait_for_exit > 0:
+        await asyncio.sleep(wait_for_exit)
+    server.should_exit = True
+    return None
 
-DefaultCfgDir = "/home/ckr-ubuntu/桌面/MyProject/CerebraX/src/cerebrax/tools"
+# 关机计时器，指有当life_cycle参数大于0的时候才生效
+async def countdown(server: register.SubServer, life_cycle: TIME, wait_for_exit: TIME) -> None:
+    if life_cycle > 0:
+        try:
+            await asyncio.sleep(life_cycle)
+        except asyncio.CancelledError:
+            return None
+        else:
+            await async_set_exit(wait_for_exit=wait_for_exit, server=server)
+    return None
+
+DefaultCfgDir = "/home/ckr-ubuntu/桌面/MyProject/CerebraX/src/cerebrax/utils"
 TomlPath = DefaultCfgDir + "/settings.toml"
 PyPath = DefaultCfgDir + "settings.py"
 
@@ -41,7 +60,7 @@ class SharedInstances(object):
 async def lifespan(app: FastAPI) -> typing.AsyncGenerator:
     cfg_parser = await load_cfg(path=TomlPath)  # 加载配置文件
     shutdown_task = asyncio.create_task(  # 创建定时关闭服务任务
-        shutdown_tools.countdown(
+        countdown(
             server=register.server,  # server 对象
             life_cycle=cfg_parser.lifespan_cfg.life_cycle,  # 服务的生命周期
             wait_for_exit=cfg_parser.lifespan_cfg.wait_for_exit,  # 等待退出的时间
@@ -62,7 +81,7 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator:
         proxy_handler=ProxyHandler,  # 代理控制实现类
         certificate_installer=CertificateInstaller, # 代理证书下载实现类
     )
-    config_monitor = cfg_monitor.ConfigFileEventMonitor(
+    config_monitor = cfg.ConfigFileEventMonitor(
         path=DefaultCfgDir,
         name="settings.toml",
         reload=reload_cfg,
