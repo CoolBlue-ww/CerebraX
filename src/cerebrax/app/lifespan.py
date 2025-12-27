@@ -11,8 +11,7 @@ from contextlib import asynccontextmanager
 import asyncio, typing, httpx
 from dataclasses import dataclass
 import register
-from src.cerebrax.monitor import config
-from src.cerebrax.utils.config import ConfigLoader, ConfigParser, load_cfg, reload_cfg
+from cerebrax.settings.config import ConfigLoader, ConfigParser, load_cfg, reload_cfg
 from src.cerebrax.proxy.handler import ProxyHandler
 from src.cerebrax.proxy.certificate import CertificateInstaller
 from src.cerebrax.type_and_module import TIME

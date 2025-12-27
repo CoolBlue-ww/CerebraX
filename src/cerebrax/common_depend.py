@@ -2,7 +2,7 @@
 import asyncio, time, os, sys, typing, types, uuid, inspect, signal, shlex, tomllib, json
 import pathlib
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 from importlib import util
 from dataclasses import dataclass
 from enum import Enum
@@ -48,13 +48,22 @@ import ijson
 import bs4
 from bs4 import BeautifulSoup
 
+import redis
+from redis import Redis
+from redis.asyncio import Redis as AsyncRedis
+
+import docker
+from docker import errors
+from docker.errors import ImageNotFound, APIError, DockerException
+
+
 __all__ = [
     # standard library
     "asyncio", "time", "os", "sys", "typing", "types", "uuid", "inspect", "signal", "shlex", "tomllib", "json",
     "contextlib",
     "pathlib",
     "Path",
-    "ThreadPoolExecutor", "as_completed",
+    "ThreadPoolExecutor", "as_completed", "ProcessPoolExecutor",
     "util",
     "dataclass",
     "Enum",
@@ -81,4 +90,6 @@ __all__ = [
     "lxml", "etree", "html",
     "ijson",
     "bs4", "BeautifulSoup",
+    "redis", "Redis", "AsyncRedis",
+    "docker", "errors", "ImageNotFound", "APIError", "DockerException",
 ]
