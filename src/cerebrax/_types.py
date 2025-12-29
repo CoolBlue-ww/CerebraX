@@ -1,6 +1,9 @@
 from src.cerebrax.common_depend import (
-    docker,
     typing,
+    docker,
+)
+from src.cerebrax.utils.collector import (
+    DataCollector,
 )
 
 
@@ -36,3 +39,19 @@ DefaultContainerRunArgs: typing.Dict[str, typing.Any] = {
     "detach": True
 }
 
+ResourceTypes: typing.Set[str] = {"network", "memory", "swap", "cpu", "disk"}
+_data_collector = DataCollector()
+ResourceMapping: typing.Dict[str, typing.Callable] = {
+    "network": _data_collector.get_network_snapshot,
+    "memory": _data_collector.get_memory_snapshot,
+    "swap": _data_collector.get_swap_snapshot,
+    "cpu": _data_collector.get_cpu_snapshot,
+    "disk": _data_collector.get_disk_snapshot,
+}
+Interval = typing.Optional[float]
+
+CommonIterable = typing.Union[
+    typing.List,
+    typing.Set,
+    typing.Tuple
+]

@@ -11,6 +11,7 @@ from src.cerebrax._types import (
 DockerImageList,
 DefaultContainerQuery,
 ContainerRunArgs,
+DefaultContainerRunArgs,
 )
 
 # image reference 镜像引用
@@ -70,7 +71,7 @@ class DockerContainer(object):
 
     def start(self, query: str = DefaultContainerQuery, args: ContainerRunArgs = None):
         container = None
-        _args = args if isinstance(args, typing.Dict) else {}
+        _args = args if isinstance(args, typing.Dict) else DefaultContainerRunArgs
         try:
             container = self.client.containers.get(query)
         except NotFound:
@@ -107,17 +108,17 @@ class DockerContainer(object):
         if self.container:
             self.container.restart()
 
+# dc = DockerContainer(client=docker.from_env())
+# dc.start()
+client = docker.from_env()
+c = client.containers.get("CerebraX-OCR")
+print(c)
+print(client.containers.list(all=True))
+import time
+for _ in range(1000):
+    time.sleep(1)
 
-from src.cerebrax.internal import docker_client
-
-
-dc = DockerContainer(docker_client)
-
-args = {
-    "image": "hello-world:latest"
-}
-
-dc.start(query="hello-world", args=args)
-print(dc.container)
-
-
+__all__ = [
+    "DockerImages",
+    "DockerContainer",
+]
