@@ -54,7 +54,7 @@ from redis.asyncio import Redis as AsyncRedis
 
 import docker
 from docker import errors
-from docker.errors import ImageNotFound, APIError, DockerException
+from docker.errors import ImageNotFound, APIError, DockerException, NotFound
 
 
 __all__ = [
@@ -91,5 +91,5 @@ __all__ = [
     "ijson",
     "bs4", "BeautifulSoup",
     "redis", "Redis", "AsyncRedis",
-    "docker", "errors", "ImageNotFound", "APIError", "DockerException",
+    "docker", "errors", "ImageNotFound", "APIError", "DockerException", "NotFound",
 ]
