@@ -1,8 +1,17 @@
-import platform as pf
-import httpx, aiopath, typing
+from src.cerebrax.common_depend import (
+    typing,
+    platform as pf,
+    aiopath,
+    httpx
+)
+from src.cerebrax.internal import (
+    httpx_proxy_client as client,
+)
+from src.cerebrax._types import (
+    Platforms,
+    OtherPlatformFormat,
+)
 
-Platforms = typing.Literal["windows", "linux", "ios", "android", "firefox", "other-platform", "macos"]
-OtherPlatformFormat = typing.Literal["pem", "p12"]
 
 class CertificateInstaller(object):
     __slots__ = ('url', 'proxy', 'certificate_links')
@@ -47,19 +56,18 @@ class CertificateInstaller(object):
             f'mitmproxy-ca-cert-{cert_platform.lower()}.{cert_url.rsplit(
                 sep="/", maxsplit=1)[-1]}'
         )
-        async with httpx.AsyncClient(proxy=self.proxy, verify=False) as client:
-            try:
-                response = await client.get(url=cert_url)
-                response.raise_for_status()
-                data = response.text if cert_file.suffix == "/pem" else response.content
-                is_bytes = isinstance(data, bytes)
-                async with cert_file.open(
-                        mode = "wb" if is_bytes else "wt",
-                        encoding = None if is_bytes else "ascii",
-                ) as file:
-                    await file.write(data)
-            except httpx.HTTPError:
-                raise httpx.HTTPError("Proxy service not enabled.")
+        try:
+            response = await client.get(url=cert_url)
+            response.raise_for_status()
+            data = response.text if cert_file.suffix == "/pem" else response.content
+            is_bytes = isinstance(data, bytes)
+            async with cert_file.open(
+                    mode = "wb" if is_bytes else "wt",
+                    encoding = None if is_bytes else "ascii",
+            ) as file:
+                await file.write(data)
+        except httpx.HTTPError:
+            raise httpx.HTTPError("Proxy service not enabled.")
         return str(cert_file)
 
 __all__ = [

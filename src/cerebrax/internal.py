@@ -11,6 +11,10 @@ from src.cerebrax.common_depend import (
 
 # -------------------------- Httpx ----------------------------------
 httpx_client = httpx.AsyncClient()  # 内部http的异步客户端
+httpx_proxy_client = httpx.AsyncClient(
+    proxy="http://127.0.0.1:8000",
+    verify=False
+)
 # -------------------------- Redis ----------------------------------
 redis_client = AsyncRedis() # 内部redis连接客户端
 # -------------------------- Process Pool ---------------------------

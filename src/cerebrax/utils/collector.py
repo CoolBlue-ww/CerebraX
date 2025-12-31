@@ -2,6 +2,9 @@ from src.cerebrax.common_depend import (
     typing,
     psutil,
 )
+from src.cerebrax.internal import (
+    thread_pool,
+)
 
 class DataCollector(object):
     @staticmethod
@@ -21,16 +24,19 @@ class DataCollector(object):
                 'logical': psutil.cpu_count(logical=True),
                 'physical': psutil.cpu_count(logical=False),
             },
-            'cpu_percent': {
-                'average': psutil.cpu_percent(interval=interval, percpu=False),
-                'respective': psutil.cpu_percent(interval=interval, percpu=True),
-            },
+            'cpu_percent': {},
             'cpu_times': {
                 'average': psutil.cpu_times(percpu=False),
                 'respective': psutil.cpu_times(percpu=True),
             },
             'cpu_stats': psutil.cpu_stats(),
             'getloadavg': psutil.getloadavg(),
+        }
+        w1 = thread_pool.submit(psutil.cpu_percent, interval=interval, percpu=False)
+        w2 = thread_pool.submit(psutil.cpu_percent, interval=interval, percpu=True)
+        cpu_snapshot['cpu_percent'] = {
+            'average': w1.result(),
+            'respective': w2.result(),
         }
         return cpu_snapshot
 

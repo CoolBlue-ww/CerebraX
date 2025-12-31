@@ -84,37 +84,11 @@ class ResourceChangesMonitor(object):
             task = asyncio.create_task(getattr(self, f"put_{a}")())
             self.producers.add(task)
 
-
     async def stop(self):
         self.producer_exit = True
         await asyncio.gather(*self.producers, return_exceptions=True)
         self.consumer_exit = True
         await self.consumer
-
-import time
-async def t(a):
-    temp = time.time()
-    async for i in a:
-        print(i)
-        e = time.time()
-
-        print(f"时间间隔：{e-temp}s")
-        temp = e
-
-
-async def main():
-    rcm = ResourceChangesMonitor(call=t, aspect=["memory", "swap", "network", "disk", "cpu"], interval=1)
-    await rcm.start()
-    count = 0
-    while True:
-        if count == 10:
-            break
-        await asyncio.sleep(1)
-        count += 1
-    print("stop")
-    await rcm.stop()
-asyncio.run(main())
-
 
 
 __all__ = [
