@@ -12,7 +12,6 @@ from src.cerebrax._types import (
     OtherPlatformFormat,
 )
 
-
 class CertificateInstaller(object):
     __slots__ = ('url', 'proxy', 'certificate_links')
 
