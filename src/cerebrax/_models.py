@@ -8,28 +8,20 @@ ValidationError,
 ValidationInfo
 )
 from src.cerebrax._types import (
-TIME,
-DefaultLifeCycle,
-DefaultExitTimeout,
-DefaultStartupCommand,
-DefaultWaitForExit,
-FallbackPattern,
-AutoStart,
-AdaptPattern,
-Patterns,
+    Time,
+    DefaultLifeCycle,
+    DefaultStartupCommand,
+    DefaultWaitForExit,
+    Patterns,
 )
 
 
 class LifespanConfig(BaseModel):
-    life_cycle: TIME = DefaultLifeCycle
-    wait_for_exit: TIME = DefaultWaitForExit
-    exit_timeout: TIME = DefaultExitTimeout
+    life_cycle: Time = DefaultLifeCycle
+    wait_for_exit: Time = DefaultWaitForExit
 
 
 class ProxyConfig(BaseModel):
-    auto_start: bool = AutoStart
-    adapt_pattern: bool = AdaptPattern
-    fallback_pattern: str = FallbackPattern
     startup_command: typing.Union[str, typing.List[str]] = DefaultStartupCommand
 
     @field_validator("startup_command", mode="before")
@@ -43,18 +35,14 @@ class ProxyConfig(BaseModel):
         _data = info.data
         if _v[0] == "mitmproxy":
             if not sys.stdin.isatty() and _data["adapt_pattern"]:
-                fallback_pattern = _data["fallback_pattern"]
-                if fallback_pattern != "mitmproxy" and fallback_pattern in Patterns:
-                    _v[0] = fallback_pattern
-                else:
-                    _v[0] = "mitmdump"
+                _v[0] = "mitmdump"
         return _v
 
 
-class ShutdownLaunchItem(BaseModel):
+class ShutdownConfirm(BaseModel):
     shutdown: bool = True
-    wait_for_exit: TIME = DefaultWaitForExit
+    wait_for_exit: Time = DefaultWaitForExit
 
-
-class CannelCountdownItem(BaseModel):
+class CannelCountdown(BaseModel):
     cannel_countdown: bool = False
+

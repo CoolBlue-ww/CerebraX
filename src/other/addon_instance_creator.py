@@ -1,5 +1,5 @@
 import inspect, typing, types
-from src.cerebrax.utils import model_loader
+from src.cerebrax.utils import module_loader
 
 
 class AddonInstanceCreator(object):

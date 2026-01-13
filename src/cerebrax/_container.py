@@ -7,4 +7,17 @@ class ConfigSnapshot(object):
     proxy_config: typing.Any = None
 
 
+@dataclass(frozen=False)
+class Shared(object):
+    pass
 
+@dataclass(frozen=False)
+class Toolkit(object):
+    pass
+
+
+__all__ = [
+    "ConfigSnapshot",
+    "Shared",
+    "Toolkit",
+]

@@ -31,14 +31,15 @@ class CertificateInstaller(object):
         }
 
     async def install(self,
-                                   platform: typing.Optional[Platforms] = None,
-                                   other_platform_format: typing.Optional[OtherPlatformFormat] = None,
-                                   save_dir: typing.Optional[str] = None,
-                                   ) -> str:
+                      platform: typing.Optional[Platforms] = None,
+                      other_platform_format: typing.Optional[OtherPlatformFormat] = None,
+                      save_dir: typing.Optional[str] = None,
+                      ) -> str:
         cert_platform = platform or pf.system()
         if cert_platform and cert_platform.lower() not in self.certificate_links.keys():
             raise ValueError(
-                f'Platform "{platform}" is not supported. The platform must be "windows", "linux", "ios", "macos", "android", "firefox" or "other-platforms".'
+                f'Platform "{platform}" is not supported.'
+                f' The platform must be "windows", "linux", "ios", "macos", "android", "firefox" or "other-platforms".'
             )
         if cert_platform == 'Darwin':
             cert_platform = 'macOS'
