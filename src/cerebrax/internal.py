@@ -20,7 +20,7 @@ redis_client = AsyncRedis() # 内部redis连接客户端
 # -------------------------- Process Pool ---------------------------
 process_pool = ProcessPoolExecutor(max_workers=10)
 # -------------------------- Thread Pool ----------------------------
-thread_pool = ThreadPoolExecutor(max_workers=10)
+thread_pool = ThreadPoolExecutor(max_workers=70)
 # -------------------------- Docker ---------------------------------
 docker_client = docker.from_env()
 
