@@ -1,6 +1,7 @@
 from src.cerebrax.common_depend import (
     asyncio,
     typing,
+    uuid,
 )
 from src.cerebrax._types import (
     ResourceTypes,
@@ -10,100 +11,109 @@ from src.cerebrax._types import (
 )
 
 
+class AsyncGeneratorCompatibleLayer(object):
+    def __init__(self,
+                 async_generator: typing.AsyncGenerator[typing.Any, None],
+                 communication_queue: asyncio.Queue,
+                 async_event: asyncio.Event,
+                 ) -> None:
+        self._async_generator = async_generator
+        self._communication_queue = communication_queue
+        self._async_event = async_event
+
+    def __aiter__(self):
+        return self._async_generator
+
+    async def __anext__(self):
+        async for item in self._async_generator:
+            yield item
+
+    def pause(self):
+        self._async_event.clear()
+
+    def resume(self):
+        self._async_event.set()
+
+    def clear(self):
+        while not self._communication_queue.empty():
+            try:
+                self._communication_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
 class ResourceChangesMonitor(object):
     def __init__(self, call: typing.Callable, aspect: CommonIterable = None, interval: Interval = None) -> None:
         self.aspect = aspect if aspect else ResourceTypes
         self.queues = {k: asyncio.Queue(maxsize=128) for k in self.aspect}
+        self.events = {k: asyncio.Event() for k in self.aspect}
+        self._event_to_set()
         self.call = call
         self.interval = 1 if not interval else interval
         self.methods = CollectionMethods
         self.producers = set()
         self.consumer = None
-        self.producer_exit = True
-        self.consumer_exit = True
+        self.running = False
 
-    async def create_producer(self, i: str) -> None:
+    def _event_to_set(self):
+        for e in self.events.values():
+            e.set()
+
+    async def _create_a_producer(self, i: str) -> None:
+        queue, event = self.queues[i], self.events[i]
         while True:
-            if self.producer_exit:
-                break
+            if not event.is_set():
+                await event.wait()
             snapshot = self.methods[i]()
             try:
-                await asyncio.wait_for(self.queues[i].put(snapshot), timeout=1)
-            except asyncio.TimeoutError:
-                if self.producer_exit:
-                    break
+                await queue.put(snapshot)
+            except asyncio.CancelledError:
+                raise asyncio.CancelledError()
             await asyncio.sleep(self.interval)
 
-    async def _create_a_consumer(self, i: str) -> typing.AsyncGenerator[typing.Any, None]:
-        queue = self.queues[i]
-        while True:
-            if self.consumer_exit:
-                break
-            try:
-                item = await asyncio.wait_for(queue.get(), timeout=1)
-                yield item
-            except asyncio.TimeoutError:
-                if queue.empty():
-                    break
-                else:
-                    continue
+    async def create_producer(self):
+        for a in self.aspect:
+            task = asyncio.create_task(self._create_a_producer(a))
+            self.producers.add(task)
 
-    def create_consumer(self) -> typing.Dict[str, typing.AsyncGenerator[typing.Any, None]]:
+    async def _create_a_consumer(self, i: str) -> typing.AsyncGenerator[typing.Any, None]:
+        queue, event = self.queues[i], self.events[i]
+        while True:
+            if not event.is_set():
+                await event.wait()
+            try:
+                item = await queue.get()
+                yield item
+            except asyncio.CancelledError:
+                raise asyncio.CancelledError()
+
+    def create_consumer(self):
         async_generators = {
-            a: self._create_a_consumer(a) for a in self.aspect
-        }
-        return async_generators
+            a: AsyncGeneratorCompatibleLayer(
+                async_generator=self._create_a_consumer(a),
+                communication_queue=self.queues[a],
+                async_event=self.events[a],
+            ) for a in self.aspect}
+        self.consumer = asyncio.create_task(self.call(async_generators))
 
 
     async def start(self):
-        if self.consumer_exit and self.producer_exit:
-            self.consumer_exit = False
-            self.consumer = asyncio.create_task(self.call(self.create_consumer(), self.stop))
-            self.producer_exit = False
-            for a in self.aspect:
-                task = asyncio.create_task(
-                    self.create_producer(a)
-                )
-                self.producers.add(task)
+        if not self.running:
+            self.create_consumer()
+            await self.create_producer()
+            self.running = True
 
     async def stop(self):
-        if not self.producer_exit and not self.consumer_exit:
-            self.producer_exit = True
-            print("到这里了")
-            await asyncio.gather(*self.producers, return_exceptions=True)
-            print("快了快了")
-            self.consumer_exit = True
-            await self.consumer
-            print("这里卡住了？")
+        if self.running:
+            for p in self.producers:
+                try:
+                    p.cancel()
+                    await p
+                except asyncio.CancelledError:
+                    pass
+            self.producers.clear()
+            self.consumer = None
+            self.running = False
 
-
-async def test(x, z):
-    import time
-    from aiostream import stream
-    a = time.time()
-    count = 0
-    ts = 0
-    async for y in x["cpu"]:
-        # if count == 1001:
-        #     break
-        b = time.time()
-        print((b-a)*1000)
-        ts += (b-a) * 1000
-        a = b
-        count += 1
-    print(f"采样次数：{count-1}，平均采样时间：{ts/(count-1)}ms")
-
-
-async def main():
-    monitor = ResourceChangesMonitor(test, interval=0.001)
-    await monitor.start()
-    await asyncio.sleep(3)
-    # print(monitor.producer_exit, monitor.consumer_exit)
-    await monitor.stop()
-
-# 采样次数：10000，平均采样时间：2.5746946573257445ms
-# 采样次数：10000，平均采样时间：2.5925132989883424ms
-asyncio.run(main())
 
 __all__ = [
     "ResourceChangesMonitor",
